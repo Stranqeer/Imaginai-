@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { Download, Image as ImageIcon, Loader2, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -21,6 +22,7 @@ const formSchema = z.object({
 
 export default function ImageGenerator() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -34,9 +36,11 @@ export default function ImageGenerator() {
   const handleGenerate = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     setImageUrl(null);
+    setErrorMessage(null);
     try {
       const result = await generateImageAction({ prompt: values.prompt });
       if (result.error) {
+        setErrorMessage(result.error);
         throw new Error(result.error);
       }
       setImageUrl(result.imageUrl || null);
@@ -55,6 +59,7 @@ export default function ImageGenerator() {
   const handleClear = () => {
     form.reset({ prompt: '' });
     setImageUrl(null);
+    setErrorMessage(null);
   };
   
   const handleDownload = () => {
@@ -66,7 +71,7 @@ export default function ImageGenerator() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch (error) {
+    } catch {
       toast({
         variant: 'destructive',
         title: 'Error downloading image',
@@ -144,10 +149,18 @@ export default function ImageGenerator() {
               </Button>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
-              <ImageIcon size={64} className="mb-4 stroke-1" />
-              <p className="text-lg font-medium">Your image will appear here</p>
-              <p className="text-sm">Start by entering a prompt and clicking "Generate".</p>
+            <div className="flex h-full flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+              {errorMessage ? (
+                <Alert variant="destructive" className="text-left">
+                  <AlertTitle>Could not generate an image</AlertTitle>
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+              <ImageIcon size={64} className="stroke-1" />
+              <div>
+                <p className="text-lg font-medium">Your image will appear here</p>
+                <p className="text-sm">Start by entering a prompt and clicking &quot;Generate&quot;.</p>
+              </div>
             </div>
           )}
         </div>

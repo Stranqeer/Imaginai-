@@ -20,6 +20,21 @@ export async function generateImage(input: GenerateImageInput): Promise<Generate
   return generateImageFlow(input);
 }
 
+/** Confirmed on https://ai.google.dev/gemini-api/docs/image-generation */
+const IMAGE_MODEL = 'gemini-nano-banana-2.1';
+
+function readGeminiApiKey(): string | undefined {
+  const value =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY;
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === 'your_gemini_api_key') {
+    return undefined;
+  }
+  return trimmed;
+}
+
 const generateImageFlow = ai.defineFlow(
   {
     name: 'generateImageFlow',
@@ -27,11 +42,19 @@ const generateImageFlow = ai.defineFlow(
     outputSchema: GenerateImageOutputSchema,
   },
   async input => {
+    const apiKey = readGeminiApiKey();
+    if (!apiKey) {
+      throw new Error(
+        'Image generation needs a Gemini API key. Copy .env.example to .env.local, set GEMINI_API_KEY, and restart the dev server.'
+      );
+    }
+
     const {media} = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
+      model: `googleai/${IMAGE_MODEL}`,
       prompt: input.prompt,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
+        apiKey,
       },
     });
 
